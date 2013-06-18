@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Developer Assistant
+Bundle-SymbolicName: org.fedoraproject.developer.assistant.feature;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: org.fedoraproject.developer.assistant.feature.Activator
+Bundle-Vendor: Petr Hracek
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-ActivationPolicy: lazy
+Import-Package: org.eclipse.ui.dialogs
