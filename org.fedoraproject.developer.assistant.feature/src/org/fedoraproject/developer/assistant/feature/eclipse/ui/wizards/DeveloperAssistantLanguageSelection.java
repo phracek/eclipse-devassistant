@@ -3,7 +3,6 @@ package org.fedoraproject.developer.assistant.feature.eclipse.ui.wizards;
 import java.io.*;
 import java.util.*;
 
-
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
@@ -14,6 +13,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.yaml.snakeyaml.Yaml;
 
 public class DeveloperAssistantLanguageSelection extends WizardPage implements Listener {
 	
@@ -37,9 +37,29 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 		// TODO Auto-generated constructor stub
 	}
 	
-	private String getAssistants(String assistant)
+	private String getAssistants(String assistant) throws FileNotFoundException
 	{
 		String str="";
+		File folder = new File("/home/phracek/work/devassistant/devassistant/assistants/yaml");
+		File[] listOfFiles = folder.listFiles();
+		for (int i=0; i< listOfFiles.length; i++)
+		{
+			if(listOfFiles[i].isFile())
+			{
+				String fileName = listOfFiles[i].getName();
+				if(fileName.endsWith(".yaml"))
+				{
+					System.out.println("File name is:"+fileName);
+					InputStream input = new FileInputStream(listOfFiles[i]);
+					Yaml yaml = new Yaml();
+					for(Object data : yaml.loadAll(input))
+					{
+						System.out.println(data);
+					}
+				}
+			}
+		}
+		
 		try
 		{
 			Process p = Runtime.getRuntime().exec(devassistant+" "+assistant+" --help | tail -n 1");
@@ -47,6 +67,7 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 			String s;
 			while ((s = stdInput.readLine())!= null)
 			{
+				System.out.println("Line is:"+s);
 				StringTokenizer st = new StringTokenizer(s,"{");
 				if (!st.hasMoreTokens())
 				{
@@ -109,7 +130,14 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 		label.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
 		label.setText("Select language which you would like to setup");
 		//System.out.println("Calling devassistant binary");
-		getAssistants("");
+		try
+		{
+			getAssistants("");
+		}
+		catch (FileNotFoundException fnf)
+		{
+			System.out.println("Exception:"+fnf.getMessage());
+		}
 		mainList = new List(composite, SWT.SINGLE | SWT.BORDER | SWT.LEFT | SWT.READ_ONLY);
 		mainList.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		mainList.addListener(SWT.Selection, this);
