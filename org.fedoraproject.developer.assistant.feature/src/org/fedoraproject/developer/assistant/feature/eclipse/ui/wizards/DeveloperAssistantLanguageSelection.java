@@ -13,7 +13,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 public class DeveloperAssistantLanguageSelection extends WizardPage implements Listener {
 	
@@ -24,6 +26,7 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 	private List mainList;
 	private List subList;
 	private Label labelSub;
+	private String name="";
 
 	public DeveloperAssistantLanguageSelection(String pageName) {
 		super(pageName);
@@ -37,11 +40,46 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 		// TODO Auto-generated constructor stub
 	}
 	
-	private String getAssistants(String assistant) throws FileNotFoundException
+	private void findNode(int i, Map map, ArrayList list, String rootAss)
+	{
+		ArrayList object = new ArrayList();
+		Iterator entries = map.entrySet().iterator();
+		while (entries.hasNext())
+		{
+			//System.out.println("Iterator:"+i);
+			Map.Entry entry = (Map.Entry) entries.next();
+			Object value = entry.getValue();
+			Object key = entry.getKey();
+			System.out.println("KEY:"+key);
+			System.out.println("VALUE:"+value);
+			if (i==0)
+				name = (String)key;
+			if(i==1)
+			{
+				System.out.println(name+":"+key);
+				if(key.toString().compareTo("fullname")==0)
+				{
+					if(rootAss.compareTo("")==0)
+						list.add(name+"="+value);
+					else
+						list.add(rootAss+"="+name+"="+value);				}
+			}
+			if(value instanceof Map)
+			{
+				i++;
+				findNode(i,(Map)value, list, rootAss);
+				
+			}
+		}
+	}
+	
+	private void getAssistants(String assistant) throws FileNotFoundException
 	{
 		String str="";
-		File folder = new File("/home/phracek/work/devassistant/devassistant/assistants/yaml");
+		String dirName = "/home/phracek/work/devassistant/devassistant/assistants/yaml";
+		File folder = new File(dirName);
 		File[] listOfFiles = folder.listFiles();
+		// This section is used for main Assistants
 		for (int i=0; i< listOfFiles.length; i++)
 		{
 			if(listOfFiles[i].isFile())
@@ -49,73 +87,75 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 				String fileName = listOfFiles[i].getName();
 				if(fileName.endsWith(".yaml"))
 				{
-					System.out.println("File name is:"+fileName);
-					InputStream input = new FileInputStream(listOfFiles[i]);
+					String file = null;
+					try
+					{
+						BufferedReader reader = new BufferedReader(new FileReader(listOfFiles[i]));
+						StringBuilder stringBuilder = new StringBuilder();
+						String line = null;
+						String ls = System.getProperty("line.separator");
+						while ((line = reader.readLine())!=null)
+						{
+							stringBuilder.append(line);
+							stringBuilder.append(ls);
+						}
+						file = stringBuilder.toString();
+						
+					} catch (IOException io)
+					{
+					}
 					Yaml yaml = new Yaml();
-					for(Object data : yaml.loadAll(input))
-					{
-						System.out.println(data);
-					}
+					Map map = (Map) yaml.load(file);
+					//System.out.println(map);
+					findNode(0,map,mainAss,"");
 				}
 			}
 		}
-		
-		try
+		// This section is used for subassistant part
+		System.out.println(mainAss);
+		for(int i=0; i<mainAss.size(); i++)
 		{
-			Process p = Runtime.getRuntime().exec(devassistant+" "+assistant+" --help | tail -n 1");
-			BufferedReader stdInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			String s;
-			while ((s = stdInput.readLine())!= null)
+			StringTokenizer st = new StringTokenizer(mainAss.get(i),"=");
+			String main = st.nextToken();
+			File dir = new File(dirName+"/"+main);
+			if(dir.exists())
 			{
-				System.out.println("Line is:"+s);
-				StringTokenizer st = new StringTokenizer(s,"{");
-				if (!st.hasMoreTokens())
+				File[] listOfSubFiles = dir.listFiles();
+				// This section is used for main Assistants
+				for (int j=0; j< listOfSubFiles.length; j++)
 				{
-					break;
-				}
-				st.nextToken();
-				if(!st.hasMoreTokens())
-				{
-					break;
-				}
-				String list = st.nextToken();
-				//System.out.println("Second:"+list);
-				StringTokenizer stlast = new StringTokenizer(list,"}");
-				if (!stlast.hasMoreTokens())
-					break;
-				list = stlast.nextToken();
-				//System.out.println("Third:"+list);
-				StringTokenizer comp = new StringTokenizer(list, ",");
-				boolean bSubAssistant = false;
-				while(comp.hasMoreTokens())
-				{
-					bSubAssistant = true;
-					String assist = comp.nextToken();
-					//System.out.println("subassistants:"+assist);
-					//System.out.println("Main assista:"+assistant);
-					if(assistant.compareTo("")!=0)
+					if(listOfSubFiles[j].isFile())
 					{
-						//System.out.println("Subassistant: "+assist);
-						subAss.add(assistant+"="+assist);
-						getAssistants(assistant+ "" + assist);
-					}
-					else
-					{
-						mainAss.add(assist);
-						getAssistants(assistant+ "" + assist);
+						String fileName = listOfSubFiles[j].getName();
+						if(fileName.endsWith(".yaml"))
+						{
+							String file = null;
+							try
+							{
+								BufferedReader reader = new BufferedReader(new FileReader(listOfSubFiles[j]));
+								StringBuilder stringBuilder = new StringBuilder();
+								String line = null;
+								String ls = System.getProperty("line.separator");
+								while ((line = reader.readLine())!=null)
+								{
+									stringBuilder.append(line);
+									stringBuilder.append(ls);
+								}
+								file = stringBuilder.toString();
+								
+							} catch (IOException io)
+							{
+							}
+							Yaml yaml = new Yaml();
+							Map map = (Map) yaml.load(file);
+							//System.out.println(map);
+							findNode(0,map,subAss,main);
+						}
 					}
 				}
-				if(!bSubAssistant)
-					mainAss.add(list);
 			}
-			
-			//System.out.println("Loop where finished");
 		}
-		catch (IOException ie)
-		{
-			return "";
-		}
-		return str;
+		System.out.println(subAss);
 	}
 
 	@Override
@@ -143,7 +183,9 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 		mainList.addListener(SWT.Selection, this);
 		for(int i=0; i<mainAss.size(); i++)
 		{
-			mainList.add(mainAss.get(i));
+			StringTokenizer st = new StringTokenizer(mainAss.get(i),"=");
+			st.nextToken();
+			mainList.add(st.nextToken());
 		}
 	
 		labelSub = new Label(composite, SWT.NONE);
@@ -157,7 +199,10 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 			System.out.println(i+" "+subAss.get(i));
 			StringTokenizer st = new StringTokenizer(subAss.get(i),"=");
 			if(selAssistant.compareTo(st.nextToken())==0)
+			{
+				st.nextToken();
 				subList.add(st.nextToken());
+			}
 		}
 		//setPageComplete(false);
 		setControl(composite);
@@ -170,7 +215,9 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 			{
 				int index = mainList.getSelectionIndex();
 				//System.out.println("Index: " +index+ " "+mainAss.get(index));
-				selAssistant = mainAss.get(index);
+				String mainRow = mainAss.get(index);
+				StringTokenizer mainSt = new StringTokenizer(mainRow, "=");
+				selAssistant = mainSt.nextToken();
 				subList.removeAll();
 				boolean bFound=false;
 				for(int i=0; i<subAss.size(); i++)
@@ -178,10 +225,11 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 					//System.out.println(subAss.get(i));
 					StringTokenizer st = new StringTokenizer(subAss.get(i),"=");
 					String main = st.nextToken();
-					//System.out.println(main + selAssistant);
+					System.out.println(main + selAssistant);
 					if(selAssistant.compareTo(main)==0)
 					{
 						bFound = true;
+						st.nextToken();
 						subList.add(st.nextToken());
 					}
 				}
@@ -207,7 +255,10 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 					if(mainSub.compareTo(main)==0)
 					{
 						if(indexSub == count)
-							System.out.println("Correct subassistant is:"+subAss.get(i));
+						{
+							st.nextToken();
+							System.out.println("Correct subassistant is:"+st.nextToken());
+						}
 						count++;
 					}
 				}
@@ -229,7 +280,9 @@ public class DeveloperAssistantLanguageSelection extends WizardPage implements L
 		if(mainList.getSelectionCount() > 0)
 		{
 			int index = mainList.getSelectionIndex();
-			String main = mainAss.get(index);
+			String mainRow = mainAss.get(index);
+			StringTokenizer mainSt = new StringTokenizer(mainRow,"=");
+			String main = mainSt.nextToken();
 			//System.out.println(main);
 			int indexSub = subList.getSelectionIndex();
 			int count=0;

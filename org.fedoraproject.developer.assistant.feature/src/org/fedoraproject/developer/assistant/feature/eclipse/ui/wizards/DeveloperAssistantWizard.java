@@ -87,6 +87,7 @@ public class DeveloperAssistantWizard extends Wizard implements INewWizard{
 		{
 			String mainAssist = ((DeveloperAssistantLanguageSelection)page).getMainAssistant();
 			String subAssist = ((DeveloperAssistantLanguageSelection)page).getSubAssistant();
+			System.out.println("Main:"+mainAssist+" and subAss:"+subAssist);
 			optionsPage = new DeveloperAssistantOptions("Select options which should be setup",mainAssist, subAssist,((DeveloperAssistantLanguageSelection)page).getDevAssistantPath());
 			addPage(optionsPage);
 			return optionsPage;
